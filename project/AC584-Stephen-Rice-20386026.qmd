@@ -1,0 +1,313 @@
+---
+title: "Gauging the Global Grimy Hands Pandemic"
+subtitle: "An Analysis of Global Access to Hygiene"
+author: "Stephen Rice"
+submission date: ""
+format:
+  html:
+    toc: true
+    theme: materia
+    backgroundcolor: lightyellow
+execute: 
+  echo: false
+  warning: false
+  message: false
+---
+
+![UNICEF](images.jpg){width=400}
+
+
+# To Pinpoint the Lack of Handwashing Resources
+
+The importance of handwashing facilities has been spotlighted like never before in the wake of the **COVID-19 pandemic**. Effective hand hygiene, including regular handwashing with soap and water, has emerged as a critical measure in combating the spread of viruses. Handwashing not only helps prevent the transmission of COVID-19 but also various other infectious diseases. It serves as a **frontline defense**, especially in settings where maintaining physical distance is challenging. Accessible handwashing facilities, coupled with proper hygiene practices, are **vital** in protecting individuals and communities from illness.
+
+```{r}
+#| label: setup
+#| include: false
+
+# libraries
+library(tidyverse)
+library(plotly)
+library(ggplot2)
+library(maps)
+library("dplyr")
+library(ggh4x)
+library(patchwork)
+library(shiny)
+
+#data
+unicef_metadata_1_ <- read_csv("unicef_metadata (1).csv")
+unicef_indicator_1 <- read_csv("unicef_indicator_1.csv")
+Country_to_Continent <- read_csv("Country to Continent.csv")
+
+#transformations
+
+
+C2C_merge <- merge(unicef_metadata_1_, Country_to_Continent, by.x = "country", by.y = "Country")
+
+scatter_merge <- merge(C2C_merge, unicef_indicator_1)
+```
+
+```{r, fig.width=10, fig.height=6}
+
+map_world <- map_data("world")
+
+#MAP 2010
+
+filtered_data_map <- unicef_indicator_1 %>%
+  filter(year >= 2010 & year <= 2020)
+
+map_handwash <- full_join(filtered_data_map, map_world, by = c("country" = "region"))
+
+
+ggplot(map_handwash, aes(x = long, y = lat, group = group, fill = obs_value)) +
+  geom_polygon(color = "black", size = 0.2) +  # Add borders to the polygons
+  scale_fill_gradient(name = "%", low = "green", high = "red", na.value = "gray", guide = "legend") +  # Customize the color scale
+  labs(
+    title = "Proportion of Population with No Handwashing Facilities by Country",
+    fill = "Proportion No Handwashing"
+  ) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(size = 12, face = "bold", hjust = 0.5),  # Adjust title appearance
+    legend.title = element_text(size = 12),  # Adjust legend title appearance
+    legend.text = element_text(size = 12),   # Adjust legend text appearance
+    axis.text = ,             # Remove axis text
+    axis.ticks = element_blank(),            # Remove axis ticks
+    panel.background = element_rect(fill = "lightblue"),  # Customize panel background
+    panel.grid.major = element_blank(),      # Remove major grid lines
+    panel.grid.minor = element_blank()       # Remove minor grid lines
+  )
+
+```
+# Addressing the Hygiene Gap in Africa
+
+The lack of adequate handwashing facilities, particularly prevalent in **many regions of Africa**, poses a significant public health challenge. Access to basic hygiene infrastructure, such as soap and clean water, remains limited in numerous communities across the continent. 
+
+- **63%** of the ***Sub-Saharan population*** has no reliable access to soap and water
+- **12%** of the ***global population*** wash their hands before a meal
+
+This deficiency is exacerbated by various **socio-economic factors**, including poverty, inadequate sanitation systems, and limited access to healthcare resources. Addressing the disparities in handwashing facilities requires a concerted effort from governments, non-governmental organizations, and international partners to ensure that all individuals have access to this fundamental preventive measure, safeguarding the **health and well-being** of communities throughout Africa and beyond.
+
+```{r, fig.show='hold', out.width="110%", fig.align='center'}
+#TS 1 - Africa
+C2C_merge <- merge(unicef_metadata_1_, Country_to_Continent, by.x = "country", by.y = "Country")
+
+# Filter the data
+filtered_data_ts1 <- C2C_merge %>%
+  filter(Continent %in% c("Africa"))
+
+#TS 2 - Europe & Asia
+C2C_merge <- merge(unicef_metadata_1_, Country_to_Continent, by.x = "country", by.y = "Country")
+
+# Filter the data
+filtered_data_ts2 <- C2C_merge %>%
+  filter(Continent %in% c("Europe", "Asia") & country != "China" & country != "India")
+
+# Find the maximum population value across both datasets and round it up to the nearest 50 million
+max_population <- ceiling(max(
+  max(filtered_data_ts1$`Population, total`, na.rm = TRUE),
+  max(filtered_data_ts2$`Population, total`, na.rm = TRUE)
+) / 50000000) * 50000000
+
+# Plot with customizations for TS 1
+ts1_plot <- ggplot(filtered_data_ts1, aes(x = year, y = `Population, total`, group = country, color = Continent, text = country)) +
+  geom_line(size = 1.2, alpha = 0.8) +  # Increase line width and transparency
+  scale_color_manual(values = c("purple", "black")) +  # Adjust colors for Africa and Eurasia
+  labs(x = "Year", y = "Population Total", title = "Population Over Time", color = "Continent") +  # Adjust axis and title labels
+  scale_y_continuous(labels = scales::comma, breaks = seq(0, max_population, by = 50000000)) +  # Set y-axis labels and breaks
+  theme_minimal() +  # Use minimal theme
+  theme(legend.position = "bottom",  # Move legend to the bottom
+        legend.title = element_text(size = 12, face = "bold"),  # Adjust legend title appearance
+        legend.text = element_text(size = 10),  # Adjust legend text appearance
+        axis.title = element_text(size = 12),   # Adjust axis title appearance
+        axis.text = element_text(size = 10),    # Adjust axis text appearance
+        plot.title = element_text(size = 16, face = "bold", hjust = 0.5),  # Adjust plot title appearance
+        panel.grid.major = element_line(color = "gray", linetype = "dashed"),  # Add dashed grid lines
+        panel.grid.minor = element_blank()  # Remove minor grid lines
+)
+
+# Plot with customizations for TS 2
+ts2_plot <- ggplot(filtered_data_ts2, aes(x = year, y = `Population, total`, group = country, color = Continent, text = country)) +
+  geom_line(size = 1.2, alpha = 0.8) +  # Increase line width and transparency
+  labs(x = "Year", y = "Population Total", title = "Population Over Time") +  # Adjust axis and title labels
+  scale_y_continuous(labels = scales::comma, breaks = seq(0, max_population, by = 50000000)) +  # Set y-axis labels and breaks
+  scale_color_manual(values = c("Europe" = "blue", "Asia" = "red")) +  # Assign colors for continents
+  theme_minimal() +  # Use minimal theme
+  theme(legend.position = "bottom",  # Move legend to the bottom
+        legend.title = element_text(size = 12, face = "bold"),  # Adjust legend title appearance
+        legend.text = element_text(size = 10),  # Adjust legend text appearance
+        axis.title = element_text(size = 12),   # Adjust axis title appearance
+        axis.text = element_text(size = 10),    # Adjust axis text appearance
+        plot.title = element_text(size = 16, face = "bold", hjust = 0.5),  # Adjust plot title appearance
+        panel.grid.major = element_line(color = "gray", linetype = "dashed"),  # Add dashed grid lines
+        panel.grid.minor = element_blank()  # Remove minor grid lines
+)
+
+# Display both plots side by side
+ts1_plot + ts2_plot
+```
+# The Population Problem
+
+The exponential population growth experienced by almost all countries in Africa since **1960** as illustrated in this graph has significant implications for the spread of diseases, particularly given the lack of adequate handwashing facilities across the continent. With a rapidly growing population, urbanisation often outpaces infrastructure development, leading to crowded living conditions and inadequate sanitation systems. As a result, the spread of **communicable diseases**, such as cholera, dysentery, and respiratory infections, is facilitated. 
+
+- African countries follow an exponential population increase.
+
+- ***Most*** European and Asian countries follow a stable or linear population curve.
+
+It is worth highlighting the noticeable difference in population curves when compared to Asian and European countries, where ***majority*** of countries maintain quite stable population levels. This disparity in access to handwashing facilities between Africa and regions like Europe and Asia underscores the **urgent need** for investment in **public health infrastructure** and **hygiene education** to mitigate the spread of diseases and improve overall health outcomes in Africa.
+
+```{r}
+#SCATTER PLOT
+
+# Merge data
+scatter_merge <- merge(C2C_merge, unicef_indicator_1)
+
+# Filter the data
+filtered_data_scatter <- scatter_merge %>%
+  filter(year %in% c(2010, 2015, 2020))
+
+# Plot with customizations
+scatter_plot_1 <- ggplot(filtered_data_scatter, aes(x = `Life expectancy at birth, total (years)`, y = obs_value, color = Continent, size = `Population, total`, text = paste("Country:", country, "<br>Continent:", Continent, "<br>Life Expectancy:", round(`Life expectancy at birth, total (years)`, 2), "<br>Proportion:", round(obs_value, 2)))) +
+  geom_point(alpha = 0.7) +  # Add transparency to points
+  geom_smooth(method = "lm", se = FALSE, color = "blue", linetype = "dashed", size = 1.2) + # Add linear regression line with custom appearance
+  facet_wrap(~ year, nrow = 1, scales = "free_x") +  # Facet by year with free x-axis scales
+  scale_x_continuous(
+    limits = c(30, 90),  # Set the limits of the x-axis
+    breaks = seq(30, 90, by = 10),
+    labels = seq(30, 90, by = 10)
+  ) +
+  scale_y_continuous(
+    limits = c(0, 100),  # Set the limits of the y-axis
+    breaks = seq(0, 100, by = 10),  # Set breaks at intervals of 10
+    labels = seq(0, 100, by = 10)  # Set labels at intervals of 10
+  ) +
+  scale_color_manual(values = c("red", "blue", "green", "purple", "orange", "yellow")) +  # Provide color for all continents
+  scale_size_continuous(range = c(2, 10)) +  # Adjust size scale range
+  labs(
+    x = "Life Expectancy at Birth",
+    y = "Proportion of People without Handwashing Facilities",
+    title = "Life Expectancy to Proportion of People without Handwashing Facilities",
+    color = "Continent"  # Specify the title for the color scale
+  ) +
+  guides(size = "none") +  # Remove legend for size
+  theme_minimal() +  # Use minimal theme
+  theme(
+    legend.position = "bottom",  # Move legend to the bottom
+    legend.title = element_text(size = 12, face = "bold"),  # Adjust legend title appearance
+    legend.text = element_text(size = 10),  # Adjust legend text appearance
+    axis.title = element_text(size = 12),   # Adjust axis title appearance
+    axis.text = element_text(size = 10),    # Adjust axis text appearance
+    plot.title = element_text(size = 12, face = "bold", hjust = 0.5),  # Adjust plot title appearance
+    panel.grid.major = element_line(color = "gray", linetype = "dashed"),  # Add dashed grid lines
+    panel.grid.minor = element_blank(),  # Remove minor grid lines
+    panel.spacing = unit(1, "lines")  # Add spacing between facets
+  )
+
+# Convert ggplot object to Plotly
+scatterplot_1_plotly <- ggplotly(scatter_plot_1)
+
+# Print the interactive plot
+scatterplot_1_plotly
+
+
+```
+# The Impact on Life Expectancy
+
+This scatter plot depicting life expectancy against the proportion of the population without handwashing facilities reveals a **stark contrast** between African countries and the rest of the world. In Africa, represented by the ***red data points***, there's a clear trend indicating that as the proportion of the population lacking handwashing facilities increases, life expectancy decreases. This suggests a significant impact of inadequate sanitation on health outcomes, contributing to lower life expectancy rates. 
+
+Conversely, other continents, notably Asia, demonstrate the ***potential for achieving high life expectancies despite substantial population levels***. This further highlights the importance of targeted efforts to improve sanitation infrastructure and hygiene practices in African countries. 
+
+The **Appendix** displays the same graph, in a simplified form to accurately display a linear regression line for each continents' data. These linear regression lines illustrate marginal improvements every 5 years when focusing on African countries, however **more investment healthcare infrastructure** is heavily advised.
+```{r, fig.width=10, fig.height=6}
+#BAR CHART
+
+# Filter the data for specific years
+filtered_data_barchart <- C2C_merge %>%
+  filter(year %in% c(2010, 2015, 2020))
+
+# Summarize the filtered data to get average life expectancy per continent per year
+continent_summary <- filtered_data_barchart %>%
+  group_by(Continent, year) %>%
+  summarise(Average_Life_Expectancy = mean(`Life expectancy at birth, total (years)`, na.rm = TRUE))
+
+# Plot the summarized data
+ggplot(continent_summary, aes(x = reorder(Continent, Average_Life_Expectancy), y = Average_Life_Expectancy, fill = Continent)) +
+  geom_col(width = 0.7, color = "black") +  # Adjust bar width and add black outline
+  geom_text(aes(label = round(Average_Life_Expectancy, 2)), vjust = -0.5, size = 2, color = "black") +  # Add text labels on top of bars
+  facet_wrap(~ year, nrow = 1) +
+  labs(
+    x = "Continent",
+    y = "Average Life Expectancy",
+    title = "Average Life Expectancy by Continent"
+  ) +
+  scale_fill_manual(values = c("blue", "green", "purple", "orange", "red", "yellow", "pink")) +  # Revised color palette
+  theme_minimal() +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),  # Rotate x-axis labels for better readability
+    axis.title = element_text(size = 12),               # Adjust axis title size
+    plot.title = element_text(size = 16, face = "bold", hjust = 0.5),  # Adjust plot title appearance
+    legend.position = "bottom"                            # Remove legend
+  )
+
+```
+# A Mission to Catch Up
+
+This bar chart sends alarm bells when you notice the huge gap in average life expectancies. The 5 yearly comparisons show marginal improvements across most countries however a 15.69 year difference is seen between Europe and Africa in 2020. This is unacceptable and to put this into persepctive here are a couple of things which take 15 years:
+
+- Completing 1st and 2nd level education in Ireland.
+- Training to become a medical doctor.
+- Growing an apple tree to maturity.
+- Planning and building a skyscraper.
+- Training and preparing for the Olympics.
+
+This analysis has not come up short in proving the necessity that is access to handwashing facilities. It is now **proven** that there is a clear gap in healthcare infrastructure around the world, which calls for increased international aid and resource division.
+
+![UNICEF](image 2.jpg){width=400}
+
+# Appendix
+```{r, fig.width=12, fig.height=6}
+# Merge data
+scatter_merge <- merge(C2C_merge, unicef_indicator_1)
+
+# Filter the data
+filtered_data_scatter <- scatter_merge %>%
+  filter(year %in% c(2010, 2015, 2020))
+
+# Plot without customizations
+scatter_plot <- ggplot(filtered_data_scatter, aes(x = `Life expectancy at birth, total (years)`, y = obs_value, color = Continent)) +
+  geom_point(alpha = 0.7) +  # Add transparency to points
+  geom_smooth(aes(group = Continent, color = Continent), method = "lm", se = FALSE, size = 1.2) + # Add linear regression line for each continent with color matching the continent
+  facet_wrap(~ year, nrow = 1, scales = "free_x") +  # Facet by year with free x-axis scales
+  labs(
+    x = "Life Expectancy at Birth",
+    y = "Proportion of People without Handwashing Facilities",
+    title = "Life Expectancy to Proportion of People without Handwashing Facilities",
+    color = "Continent"  # Specify the title for the color scale
+  ) +
+  scale_color_manual(values = c("blue", "green", "purple", "orange", "red", "yellow", "pink")) +  # Match colors to continents
+  theme_minimal() +  # Use minimal theme
+  theme(
+    legend.position = "bottom",  # Move legend to the bottom
+    legend.title = element_blank(),  # Remove legend title
+    legend.text = element_text(size = 10),  # Adjust legend text appearance
+    axis.title = element_text(size = 12),   # Adjust axis title appearance
+    axis.text = element_text(size = 10),    # Adjust axis text appearance
+    plot.title = element_text(size = 12, face = "bold", hjust = 0.5),  # Adjust plot title appearance
+    panel.grid.major = element_line(color = "gray", linetype = "dashed"),  # Add dashed grid lines
+    panel.grid.minor = element_blank()  # Remove minor grid lines
+  ) +
+  coord_cartesian(xlim = c(min(filtered_data_scatter$`Life expectancy at birth, total (years)`), max(filtered_data_scatter$`Life expectancy at birth, total (years)`)))  # Set x-axis limits across all plots
+
+# Print the plot
+print(scatter_plot)
+
+```
+***Stephen Rice***
+
+***Student Number: 20386026***
+
+***AC584***
+
+***Module Coordinator: Dr. Damien Dupré***
+
