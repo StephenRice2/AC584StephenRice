@@ -1,2 +1,2 @@
 # AC584StephenRice
-AC584 Assignment
+R Coding Assignment for AC584 Data Analytics
